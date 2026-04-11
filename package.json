@@ -1,0 +1,31 @@
+{
+  "name": "@platus-xyz/poseidon2",
+  "version": "0.0.1",
+  "description": "High-performance Poseidon2 hash function for BN254",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "mocha",
+    "bench": "bun run src/benchmark.ts"
+  },
+  "devDependencies": {
+    "@types/chai": "5.2.3",
+    "@types/mocha": "10.0.10",
+    "@types/node": "25.6.0",
+    "chai": "6.2.2",
+    "mocha": "11.7.5",
+    "typescript": "6.0.2"
+  }
+}

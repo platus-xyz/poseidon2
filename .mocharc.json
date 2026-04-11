@@ -1,0 +1,12 @@
+{
+  "extension": ["ts"],
+  "spec": ["tests/**/*.test.ts"],
+  "loader": "ts-node/esm",
+  "node-option": ["loader=ts-node/esm"],
+  "timeout": 1000,
+  "exit": true,
+  "recursive": true,
+  "color": true,
+  "fail-zero": true,
+  "parallel": false
+}
