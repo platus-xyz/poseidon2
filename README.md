@@ -2,11 +2,7 @@
 
 A high-performance, pure TypeScript implementation of the **Poseidon2** hash function over the **BN254 scalar field**, optimized for zero-knowledge proof systems.
 
----
-
-## Overview
-
-**Poseidon2** is a modern algebraic hash function designed specifically for ZK systems like SNARKs, STARKs, Plonk, and Halo2. Unlike SHA-256 or Keccak, it operates directly over finite fields, making it significantly more efficient inside arithmetic circuits.
+It is a modern algebraic hash function designed specifically for ZK systems like SNARKs, STARKs, Plonk, and Halo2. Unlike SHA-256 or Keccak, it operates directly over finite fields, making it significantly more efficient inside arithmetic circuits.
 
 ---
 
@@ -50,7 +46,7 @@ import {
 } from '@platus-xyz/poseidon2';
 
 // Basic hash
-const hash = poseidon2Hash([amount, secret, nullifier]);
+const hash = poseidon2Hash([0n, 1n, 2n]);
 
 // Raw permutation (advanced usage)
 const state = poseidon2Permutation([0n, 1n, 2n, 3n], bn254Field);
@@ -164,7 +160,7 @@ The round structure (8 full + 56 partial) provides a conservative security margi
 Run benchmarks:
 
 ```bash
-pnpm bench
+bun bench
 ```
 
 ### Example Results
