@@ -1,15 +1,15 @@
 {
   "name": "@platus-xyz/poseidon2",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "High-performance Poseidon2 hash function for BN254",
   "license": "MIT",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "import": "./dist/src/index.js",
+      "types": "./dist/src/index.d.ts"
     }
   },
   "files": [
