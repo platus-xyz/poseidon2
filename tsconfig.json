@@ -23,6 +23,9 @@
     "incremental": true,
     "types": ["node", "mocha"]
   },
+  "ts-node": {
+    "experimentalSpecifierResolution": "node"
+  },
   "include": ["src", "tests"],
   "exclude": ["node_modules", "dist"]
 }

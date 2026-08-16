@@ -8,7 +8,7 @@ import {
   poseidon2Permutation,
   bn254Field,
   BN254_MODULUS,
-  FieldSponge
+  FieldSponge,
 } from '../src/index';
 
 describe('Poseidon2 BN254', () => {
@@ -49,6 +49,14 @@ describe('Poseidon2 BN254', () => {
       );
     });
 
+    it('matches the shared three-leaf LeanIMT root fixture', () => {
+      const leftPair = poseidon2Hash([1n, 2n]);
+      const root = poseidon2Hash([leftPair, 3n]);
+      expect(root).to.equal(
+        BigInt('0x1aa3f32cb0a5491c696519d83d9e82bb1d7bef8e7d427e1c96258044eef88193'),
+      );
+    });
+
     it('should produce deterministic output', () => {
       const a = poseidon2Hash([1n, 2n, 3n]);
       const b = poseidon2Hash([1n, 2n, 3n]);
@@ -82,10 +90,6 @@ describe('Poseidon2 BN254', () => {
       }
     });
   });
-
-  // =========================================================================
-  // Async hash — M2 fix: verifies true per-permutation yielding
-  // =========================================================================
 
   describe('async hash', () => {
     it('should produce same result as sync hash (small input)', async () => {
@@ -129,10 +133,6 @@ describe('Poseidon2 BN254', () => {
       expect(sideEffectRan).to.be.true;
     });
   });
-
-  // =========================================================================
-  // Field arithmetic tests
-  // =========================================================================
 
   describe('F1Field', () => {
     const F = bn254Field;
@@ -179,10 +179,6 @@ describe('Poseidon2 BN254', () => {
     });
   });
 
-  // =========================================================================
-  // Property-based tests
-  // =========================================================================
-
   describe('property tests', () => {
     it('avalanche effect — flipping one input bit changes many output bits', () => {
       const base = [100n, 200n, 300n];
@@ -227,10 +223,6 @@ describe('Poseidon2 BN254', () => {
     });
   });
 
-  // =========================================================================
-  // Edge cases
-  // =========================================================================
-
   describe('edge cases', () => {
     it('empty input', () => {
       const h = poseidon2Hash([]);
@@ -271,6 +263,10 @@ describe('Poseidon2 BN254', () => {
       expect(poseidon2Hash([BN254_MODULUS + 1n])).to.equal(poseidon2Hash([1n]));
     });
 
+    it('negative non-strict input uses its canonical field representative', () => {
+      expect(poseidon2Hash([-1n])).to.equal(poseidon2Hash([BN254_MODULUS - 1n]));
+    });
+
     it('zero input', () => {
       const h = poseidon2Hash([0n]);
       expect(h >= 0n && h < BN254_MODULUS).to.be.true;
@@ -291,10 +287,6 @@ describe('Poseidon2 BN254', () => {
       expect(input).to.deep.equal(copy);
     });
   });
-
-  // =========================================================================
-  // Strict mode (M1 fix: input validation)
-  // =========================================================================
 
   describe('strict mode validation', () => {
     it('accepts valid field elements in strict mode', () => {
@@ -335,10 +327,6 @@ describe('Poseidon2 BN254', () => {
     });
   });
 
-  // =========================================================================
-  // poseidon2Compress (L7: ergonomic Merkle / commitment API)
-  // =========================================================================
-
   describe('poseidon2Compress', () => {
     it('matches poseidon2Hash([left, right])', () => {
       const left = 123456789n;
@@ -363,10 +351,6 @@ describe('Poseidon2 BN254', () => {
       expect(root >= 0n && root < BN254_MODULUS).to.be.true;
     });
   });
-
-  // =========================================================================
-  // Sponge internals
-  // =========================================================================
 
   describe('sponge construction', () => {
     it('multi-output hash returns requested number of elements', () => {

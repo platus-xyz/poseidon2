@@ -1,6 +1,9 @@
 /**
  * Poseidon2 BN254 round constants for t=4, d=5, rounds_f=8, rounds_p=56.
  *
+ * These constants are generated from the Poseidon2 paper specification
+ * and match the reference implementation at github.com/zkpassport/poseidon2.
+ *
  * Structure:
  *   - Rows 0-3: full round constants (beginning, 4 full rounds)
  *   - Rows 4-59: partial round constants (only first element is nonzero)
