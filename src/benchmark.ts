@@ -1,7 +1,8 @@
 /**
  * Poseidon2 benchmark script.
  *
- * Usage: pnpm bench
+ * Usage: bun run src/benchmark.ts
+ * Or: pnpm bench
  */
 
 import { bn254Field, poseidon2Compress, poseidon2Hash, poseidon2Permutation } from './index';
