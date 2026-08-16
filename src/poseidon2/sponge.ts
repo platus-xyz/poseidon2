@@ -11,7 +11,7 @@
  */
 
 import { bn254Field, type F1Field } from '../field/bn254';
-import { poseidon2Permutation, T } from './permutation';
+import { poseidon2PermutationInPlace, T } from './permutation';
 
 const RATE = T - 1; // 3
 
@@ -40,18 +40,18 @@ export class FieldSponge {
   }
 
   private performDuplex(): void {
-    for (let i = this.cacheSize; i < RATE; i++) {
-      this.cache[i] = 0n;
-    }
-    for (let i = 0; i < RATE; i++) {
-      this.state[i] = this.F.add(this.state[i]!, this.cache[i]!);
-    }
-    this.state = poseidon2Permutation(this.state, this.F);
+    // The permutation starts with a modular linear layer. BigInt addition
+    // cannot overflow, so reducing these lane sums here would be redundant.
+    this.state[0] = this.state[0]! + (this.cacheSize > 0 ? this.cache[0]! : 0n);
+    this.state[1] = this.state[1]! + (this.cacheSize > 1 ? this.cache[1]! : 0n);
+    this.state[2] = this.state[2]! + (this.cacheSize > 2 ? this.cache[2]! : 0n);
+    poseidon2PermutationInPlace(this.state, this.F);
   }
 
   /** Absorb a single field element into the sponge. */
   absorb(input: bigint): void {
     if (this.mode === Mode.ABSORB && this.cacheSize === RATE) {
+      // Cache full — flush via permutation, then start fresh
       this.performDuplex();
       this.cache[0] = input;
       this.cacheSize = 1;
@@ -59,6 +59,7 @@ export class FieldSponge {
       this.cache[this.cacheSize] = input;
       this.cacheSize += 1;
     } else {
+      // SQUEEZE → ABSORB transition: discard squeezed state, restart absorb
       this.cache[0] = input;
       this.cacheSize = 1;
       this.cacheIdx = 0;
@@ -69,6 +70,7 @@ export class FieldSponge {
   /** Squeeze a single field element from the sponge. */
   squeeze(): bigint {
     if (this.mode === Mode.ABSORB) {
+      // First squeeze after absorbing: flush remaining input and permute
       this.performDuplex();
       this.mode = Mode.SQUEEZE;
       for (let i = 0; i < RATE; i++) {
@@ -77,9 +79,7 @@ export class FieldSponge {
       this.cacheSize = RATE;
       this.cacheIdx = 0;
     } else if (this.cacheIdx === this.cacheSize) {
-      for (let i = 0; i < RATE; i++) {
-        this.cache[i] = 0n;
-      }
+      // SQUEEZE mode, cache exhausted: permute again without absorbing
       this.cacheSize = 0;
       this.performDuplex();
       for (let i = 0; i < RATE; i++) {
@@ -97,21 +97,58 @@ export class FieldSponge {
    */
   static hashInternal(input: bigint[], outLen: number, isVariableLength: boolean): bigint[] {
     const iv = (BigInt(input.length) << 64n) + BigInt(outLen - 1);
-    const sponge = new FieldSponge(iv);
+    const state = [0n, 0n, 0n, iv];
+    const inputLength = input.length;
+    const absorbLength = inputLength + (isVariableLength ? 1 : 0);
+    let offset = 0;
 
-    for (let i = 0; i < input.length; i++) {
-      sponge.absorb(input[i]!);
-    }
+    // Direct block absorption avoids constructing a sponge object and two
+    // cache arrays for the one-shot hash API. The do/while retains the empty
+    // input permutation required by the fixed-length construction.
+    do {
+      const c0 =
+        offset < inputLength
+          ? input[offset]!
+          : isVariableLength && offset === inputLength
+            ? 1n
+            : 0n;
+      const c1 =
+        offset + 1 < inputLength
+          ? input[offset + 1]!
+          : isVariableLength && offset + 1 === inputLength
+            ? 1n
+            : 0n;
+      const c2 =
+        offset + 2 < inputLength
+          ? input[offset + 2]!
+          : isVariableLength && offset + 2 === inputLength
+            ? 1n
+            : 0n;
 
-    if (isVariableLength) {
-      sponge.absorb(1n);
-    }
+      state[0] = state[0]! + c0;
+      state[1] = state[1]! + c1;
+      state[2] = state[2]! + c2;
+      poseidon2PermutationInPlace(state, bn254Field);
+      offset += RATE;
+    } while (offset < absorbLength);
 
     const output: bigint[] = [];
+    let lane = 0;
     for (let i = 0; i < outLen; i++) {
-      output.push(sponge.squeeze());
+      if (lane === RATE) {
+        poseidon2PermutationInPlace(state, bn254Field);
+        lane = 0;
+      }
+      output.push(state[lane++]!);
     }
     return output;
+  }
+
+  /** Allocation-minimal specialization for the common binary compression. */
+  static compress(left: bigint, right: bigint): bigint {
+    const state = [left, right, 0n, 2n << 64n];
+    poseidon2PermutationInPlace(state, bn254Field);
+    return state[0]!;
   }
 
   /**
@@ -133,6 +170,9 @@ export class FieldSponge {
 
     for (let i = 0; i < input.length; i++) {
       sponge.absorb(input[i]!);
+      // Yield after filling each rate-sized block. The permutation fires on the
+      // next absorb (when cacheSize wraps), so we yield just before it — giving
+      // the event loop a window between every permutation for large inputs.
       if ((i + 1) % RATE === 0 && i + 1 < input.length) {
         await new Promise<void>((resolve) => setTimeout(resolve, 0));
       }

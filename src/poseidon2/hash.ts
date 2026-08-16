@@ -133,5 +133,5 @@ export function poseidon2HashVarLen(inputs: bigint[], options?: { strict?: boole
  * ```
  */
 export function poseidon2Compress(left: bigint, right: bigint): bigint {
-  return FieldSponge.hashFixedLength([left, right])[0]!;
+  return FieldSponge.compress(left, right);
 }
